@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trabalho de Álgebra Linear</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans h-screen flex flex-col overflow-hidden">
+
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        <section class="w-full lg:w-1/2 h-full bg-white flex flex-col border-r border-slate-200 z-0">
+            <div class="p-8 flex-shrink-0 border-b border-slate-100">
+                <h2 class="text-2xl font-bold mb-6 text-slate-800">Configuração da Matriz</h2>
+                
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-2">Equações (Linhas):</label>
+                        <div class="flex items-stretch border border-slate-300 rounded-xl overflow-hidden h-12 shadow-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
+                            <button onclick="changeConfigValue('num-eq', -1)" tabindex="-1" class="w-12 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-colors active:bg-slate-300">-</button>
+                            <input type="number" id="num-eq" value="3" min="1" max="10" class="w-full text-center outline-none font-bold text-slate-700 bg-white">
+                            <button onclick="changeConfigValue('num-eq', 1)" tabindex="-1" class="w-12 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-colors active:bg-slate-300">+</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-2">Variáveis (Incógnitas):</label>
+                        <div class="flex items-stretch border border-slate-300 rounded-xl overflow-hidden h-12 shadow-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
+                            <button onclick="changeConfigValue('num-vars', -1)" tabindex="-1" class="w-12 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-colors active:bg-slate-300">-</button>
+                            <input type="number" id="num-vars" value="3" min="1" max="10" class="w-full text-center outline-none font-bold text-slate-700 bg-white">
+                            <button onclick="changeConfigValue('num-vars', 1)" tabindex="-1" class="w-12 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition-colors active:bg-slate-300">+</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <button onclick="generateGrid()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 px-4 rounded-xl transition-colors">
+                    Gerar Campos do Sistema
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-auto p-8 relative">
+                <div id="matrix-container" class="w-max mx-auto pb-6"></div>
+            </div>
+
+            <div class="p-6 border-t border-slate-100 bg-white flex-shrink-0 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.02)]">
+                <button onclick="solveSystem()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg shadow-indigo-200/50 transition-all transform hover:-translate-y-0.5 text-lg">
+                    Resolver Sistema
+                </button>
+            </div>
+        </section>
+
+        <section class="w-full lg:w-1/2 h-full bg-slate-50 overflow-y-auto p-8 relative">
+            <h2 class="text-2xl font-bold mb-8 text-slate-800">Resultados da Análise</h2>
+            
+            <div id="empty-state" class="flex flex-col items-center justify-center h-full text-slate-400 absolute inset-0">
+                <svg class="w-20 h-20 mb-6 opacity-40 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"></path></svg>
+                <p class="text-lg font-medium text-slate-500">Aguardando processamento</p>
+                <p class="text-sm mt-2">Preencha a matriz ao lado e clique em resolver.</p>
+            </div>
+
+            <div id="results-container" class="hidden max-w-3xl mx-auto pb-10">
+                <div id="classification-box" class="mb-10 p-6 rounded-2xl text-white shadow-md flex items-center">
+                    <div id="class-icon" class="mr-5"></div>
+                    <div>
+                        <h3 class="font-bold text-2xl tracking-wide" id="classification-text"></h3>
+                        <p id="classification-subtext" class="text-white/80 mt-1 text-sm font-medium"></p>
+                    </div>
+                </div>
+
+                <div class="mb-12 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-800 mb-5 text-xl flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Conjunto Solução
+                    </h3>
+                    <div id="solution-container" class="grid grid-cols-2 gap-3 font-mono text-lg text-slate-700"></div>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-slate-800 mb-6 text-xl flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        Log de Operações
+                    </h3>
+                    <div id="steps-container" class="space-y-6"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let currentEqs = 3;
+        let currentVars = 3;
+        const EPSILON = 1e-10; // = 0.0000000001 - Temos vários testes de comparação com zero, e devido a operações de ponto flutuante, é melhor usar uma margem de erro do que comparar diretamente com zero.
+        const varNames = ['x', 'y', 'z', 't', 'w', 'u', 'v', 'a', 'b', 'c'];
+
+        function getVarName(index) {
+            return index < varNames.length ? varNames[index] : `x${index + 1}`;
+        }
+
+        function formatNumber(val) {
+            if (Math.abs(val) < EPSILON) return '0';
+            return parseFloat(val.toFixed(3)).toString();
+        }
+
+        function changeConfigValue(id, delta) {
+            const input = document.getElementById(id);
+            let val = parseInt(input.value) + delta;
+            if (val >= 1 && val <= 10) {
+                input.value = val;
+            }
+        }
+
+        function createCustomInput(i, j, isResultCol) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex items-stretch border rounded-lg overflow-hidden h-12 w-28 shadow-sm transition-colors focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 ' + 
+                (isResultCol ? 'border-indigo-300' : 'border-slate-300');
+
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.step = 'any';
+            input.id = `cell-${i}-${j}`;
+            input.value = '0';
+            input.className = 'w-full text-center outline-none font-mono text-slate-700 bg-white text-base m-0 p-0 ' + 
+                (isResultCol ? 'bg-indigo-50/50 font-bold text-indigo-900' : '');
+
+            const btnMinus = document.createElement('button');
+            btnMinus.tabIndex = -1;
+            btnMinus.className = 'w-8 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold flex items-center justify-center transition-colors active:bg-slate-300 text-lg border-r border-slate-200 ' + 
+                (isResultCol ? 'border-indigo-200' : '');
+            btnMinus.innerText = '-';
+            btnMinus.onclick = () => { input.value = (parseFloat(input.value) || 0) - 1; };
+
+            const btnPlus = document.createElement('button');
+            btnPlus.tabIndex = -1;
+            btnPlus.className = 'w-8 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold flex items-center justify-center transition-colors active:bg-slate-300 text-lg border-l border-slate-200 ' + 
+                (isResultCol ? 'border-indigo-200' : '');
+            btnPlus.innerText = '+';
+            btnPlus.onclick = () => { input.value = (parseFloat(input.value) || 0) + 1; };
+
+            wrapper.appendChild(btnMinus);
+            wrapper.appendChild(input);
+            wrapper.appendChild(btnPlus);
+
+            return wrapper;
+        }
+
+        function generateGrid() {
+            const eqInput = parseInt(document.getElementById('num-eq').value);
+            const varInput = parseInt(document.getElementById('num-vars').value);
+            
+            if (isNaN(eqInput) || eqInput < 1 || isNaN(varInput) || varInput < 1) return;
+            
+            currentEqs = eqInput;
+            currentVars = varInput;
+            
+            const container = document.getElementById('matrix-container');
+            container.innerHTML = '';
+
+            const table = document.createElement('table');
+            table.className = 'border-separate border-spacing-y-4 border-spacing-x-1';
+
+            for (let i = 0; i < currentEqs; i++) {
+                const tr = document.createElement('tr');
+                for (let j = 0; j <= currentVars; j++) {
+                    const td = document.createElement('td');
+                    td.className = 'whitespace-nowrap';
+                    
+                    const flexDiv = document.createElement('div');
+                    flexDiv.className = 'flex items-center justify-center';
+
+                    if (j === currentVars) {
+                        const equals = document.createElement('span');
+                        equals.className = 'text-slate-400 font-bold mx-4 text-xl';
+                        equals.innerText = '=';
+                        flexDiv.appendChild(equals);
+                    }
+
+                    flexDiv.appendChild(createCustomInput(i, j, j === currentVars));
+
+                    if (j < currentVars) {
+                        const label = document.createElement('span');
+                        label.className = 'font-bold text-slate-700 italic text-xl w-6 text-center ml-3 mr-1';
+                        label.innerText = getVarName(j);
+                        flexDiv.appendChild(label);
+
+                        if (j < currentVars - 1) {
+                            const plus = document.createElement('span');
+                            plus.className = 'text-slate-300 font-bold mx-2 text-xl';
+                            plus.innerText = '+';
+                            flexDiv.appendChild(plus);
+                        }
+                    }
+
+                    td.appendChild(flexDiv);
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+            container.appendChild(table);
+            
+            document.getElementById('empty-state').classList.remove('hidden');
+            document.getElementById('results-container').classList.add('hidden');
+        }
+
+        function copyMatrix(m) {
+            return m.map(row => [...row]);
+        }
+
+        // Coleta os valores da matriz aumentada a partir dos inputs e chama a função de resolução, além de preparar a interface para exibir os resultados e o log de operações. A função é acionada quando o usuário clica no botão "Resolver Sistema".
+        function solveSystem() {
+            const matrix = [];
+            for (let i = 0; i < currentEqs; i++) {
+                const row = [];
+                for (let j = 0; j <= currentVars; j++) {
+                    const val = parseFloat(document.getElementById(`cell-${i}-${j}`).value) || 0;
+                    row.push(val);
+                }
+                matrix.push(row);
+            }
+
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('results-container').classList.remove('hidden');
+
+            const result = performGaussianElimination(matrix);
+            renderResults(result);
+        }
+
+        // Realiza a eliminação de Gauss na matriz aumentada e registra cada passo do processo para posterior exibição. Retorna a classificação do sistema e a solução (se aplicável).
+        function performGaussianElimination(augmentedMatrix) {
+            const steps = [];
+            let m = copyMatrix(augmentedMatrix);
+            const rows = currentEqs;
+            const cols = currentVars + 1;
+            
+            steps.push({ desc: "Matriz Inicial", matrix: copyMatrix(m) });
+
+            let lead = 0;
+            for (let r = 0; r < rows; r++) {
+                if (currentVars <= lead) break;
+                
+                let i = r;
+                // Procura um pivô não nulo na coluna atual
+                while (Math.abs(m[i][lead]) < EPSILON) {
+                    i++;
+                    if (rows === i) {
+                        i = r;
+                        lead++;
+                        if (currentVars === lead) break;
+                    }
+                }
+
+                // Se um pivô válido for encontrado, realiza o pivoteamento (troca de linhas), normalização e eliminação para criar zeros abaixo do pivô
+                if (currentVars > lead && i < rows) {
+                    if (i !== r) {
+                        let temp = m[i];
+                        m[i] = m[r];
+                        m[r] = temp;
+                        steps.push({ 
+                            desc: `Pivoteamento: Troca da linha ${r + 1} com a linha ${i + 1}`, 
+                            matrix: copyMatrix(m) 
+                        });
+                    }
+
+                    // Normaliza a linha do pivô para que o elemento pivô seja 1 e o resto da linha seja ajustado proporcionalmente
+                    let lv = m[r][lead];
+                    if (Math.abs(lv) > EPSILON) {
+                        for (let j = 0; j < cols; j++) {
+                            m[r][j] /= lv;
+                        }
+                        steps.push({ 
+                            desc: `Normalização: Linha ${r + 1} dividida por ${formatNumber(lv)}`, 
+                            matrix: copyMatrix(m) 
+                        });
+                    }
+
+                    // Eliminação
+                    for (let k = 0; k < rows; k++) {
+                        if (k !== r) { // Se não for a linha do próprio pivô, subtrai um múltiplo da linha do pivô para criar um zero na coluna do pivô
+                            let factor = m[k][lead]; // O fator é o valor atual na posição que queremos zerar, e ele indica quanto da linha do pivô precisamos subtrair da linha k para criar um zero nessa posição.
+                            if (Math.abs(factor) > EPSILON) {
+                                for (let j = 0; j < cols; j++) {
+                                    m[k][j] -= factor * m[r][j];
+                                }
+                                steps.push({ 
+                                    desc: `Eliminação: L${k + 1} = L${k + 1} - (${formatNumber(factor)} * L${r + 1})`, 
+                                    matrix: copyMatrix(m) 
+                                });
+                            }
+                        }
+                    }
+                    lead++;
+                }
+            }
+
+            const classificationData = classifySystem(m);
+            
+            return {
+                steps: steps,
+                classification: classificationData.type,
+                subtext: classificationData.subtext,
+                solution: classificationData.solution
+            };
+        }
+
+        // Classifica o sistema com base na matriz resultante após a eliminação de Gauss
+        function classifySystem(m) {
+            let isSI = false;
+            let nonZeroRows = 0;
+
+            // Verifica se há uma linha do tipo [0, 0, ..., 0 | c] com c ≠ 0, o que indicaria um sistema impossível (SI)
+            for (let i = 0; i < currentEqs; i++) {
+                let allZerosInCoef = true;
+                for (let j = 0; j < currentVars; j++) {
+                    if (Math.abs(m[i][j]) > EPSILON) {
+                        allZerosInCoef = false;
+                        break;
+                    }
+                }
+                
+                if (allZerosInCoef && Math.abs(m[i][currentVars]) > EPSILON) {
+                    isSI = true;
+                    break;
+                } else if (!allZerosInCoef) {
+                    nonZeroRows++;
+                }
+            }
+
+            if (isSI) {
+                return {
+                    type: "Sistema Impossível",
+                    subtext: "O sistema gerou uma contradição matemática (SI).",
+                    solution: ["S = { Ø }"]
+                };
+            // Se o número de linhas não nulas for menor que o número de variáveis, o sistema é possível e indeterminado (SPI)
+            } else if (nonZeroRows < currentVars) {
+                return {
+                    type: "Sistema Possível e Indeterminado",
+                    subtext: "O sistema possui infinitas soluções (SPI).",
+                    solution: ["Infinitas soluções", "Variáveis livres identificadas"]
+                };
+            // Caso contrário, o sistema é possível e determinado (SPD) e cada variável tem um valor específico
+            } else {
+                const sol = [];
+                for (let i = 0; i < currentVars; i++) {
+                    let val = m[i][currentVars];
+                    sol.push(`<span class="text-indigo-600 font-bold mr-2">${getVarName(i)}</span> = ${formatNumber(val)}`);
+                }
+                return {
+                    type: "Sistema Possível e Determinado",
+                    subtext: "O sistema possui uma solução única (SPD).",
+                    solution: sol
+                };
+            }
+        }
+
+        function renderResults(data) {
+            const classBox = document.getElementById('classification-box');
+            const classText = document.getElementById('classification-text');
+            const classSub = document.getElementById('classification-subtext');
+            const classIcon = document.getElementById('class-icon');
+            
+            classText.innerText = data.classification;
+            classSub.innerText = data.subtext;
+            
+            if (data.classification.includes('Determinado') && !data.classification.includes('Indeterminado')) {
+                classBox.className = 'mb-10 p-6 rounded-2xl text-white shadow-lg flex items-center bg-gradient-to-r from-emerald-500 to-emerald-600';
+                classIcon.innerHTML = '<div class="bg-white/20 p-3 rounded-xl"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg></div>';
+            } else if (data.classification.includes('Indeterminado')) {
+                classBox.className = 'mb-10 p-6 rounded-2xl text-amber-900 shadow-lg flex items-center bg-gradient-to-r from-amber-400 to-amber-500';
+                classSub.className = 'text-amber-900/80 mt-1 text-sm font-medium';
+                classIcon.innerHTML = '<div class="bg-amber-900/10 p-3 rounded-xl"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div>';
+            } else {
+                classBox.className = 'mb-10 p-6 rounded-2xl text-white shadow-lg flex items-center bg-gradient-to-r from-rose-500 to-rose-600';
+                classIcon.innerHTML = '<div class="bg-white/20 p-3 rounded-xl"><svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg></div>';
+            }
+
+            const solContainer = document.getElementById('solution-container');
+            solContainer.innerHTML = data.solution.map(s => `<div class="py-3 px-4 bg-slate-50 rounded-xl border border-slate-200 shadow-sm flex items-center">${s}</div>`).join('');
+
+            const stepsContainer = document.getElementById('steps-container');
+            stepsContainer.innerHTML = '';
+            
+            data.steps.forEach((step, index) => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden';
+                
+                const header = document.createElement('div');
+                header.className = 'bg-slate-50 p-4 text-sm font-semibold text-slate-700 border-b border-slate-200 flex items-center';
+                header.innerHTML = `<span class="bg-indigo-600 text-white px-2 py-1 rounded text-xs mr-3">Passo ${index}</span> ${step.desc}`;
+                stepDiv.appendChild(header);
+
+                const matrixDiv = document.createElement('div');
+                matrixDiv.className = 'p-5 overflow-x-auto';
+                
+                let html = '<table class="w-full text-center font-mono text-sm"><tbody>';
+                step.matrix.forEach(row => {
+                    html += '<tr>';
+                    row.forEach((val, colIdx) => {
+                        let classes = 'p-2 w-16';
+                        if (colIdx === row.length - 1) classes += ' border-l-2 border-slate-300 text-indigo-600 font-bold bg-indigo-50/30';
+                        html += `<td class="${classes}">${formatNumber(val)}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+                
+                matrixDiv.innerHTML = html;
+                stepDiv.appendChild(matrixDiv);
+                stepsContainer.appendChild(stepDiv);
+            });
+        }
+
+        window.onload = generateGrid;
+    </script>
+</body>
+</html>
