@@ -87,7 +87,7 @@
                             SPD
                         </button>
                         <button onclick="loadTestCase('Teste2')"
-                            class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold py-2 px-2 rounded-lg text-sm border border-rose-200 transition-colors">    
+                            class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold py-2 px-2 rounded-lg text-sm border border-rose-200 transition-colors">
                             SI
                         </button>
                         <button onclick="loadTestCase('Teste3')"
@@ -330,7 +330,7 @@
                     }
                 }
 
-                // Se um pivô válido for encontrado, realiza o pivoteamento (troca de linhas), normalização e eliminação para criar zeros abaixo do pivô
+                // Se o pivô encontrado não estiver na linha atual, troca as linhas para colocar o pivô na posição correta
                 if (currentVars > lead && i < rows) {
                     if (i !== r) {
                         let temp = m[i];
@@ -383,26 +383,27 @@
             };
         }
 
-        // Classifica o sistema com base na matriz resultante após a eliminação de Gauss
         function classifySystem(m) {
             let isSI = false;
-            let nonZeroRows = 0;
+            let pivotRows = new Array(currentVars).fill(-1);
+            let pivotCount = 0;
 
-            // Verifica se há uma linha do tipo [0, 0, ..., 0 | c] com c ≠ 0, o que indicaria um sistema impossível (SI)
+            // Classificamos o sistema contando quantos pivôs temos e verificando se há alguma linha que se reduziu a 0 = c (c ≠ 0), o que indicaria um sistema impossível (SI)
+            // Se o número de pivôs for menor que o número de variáveis, temos um sistema possível e indeterminado (SPI). Caso contrário, é um sistema possível e determinado (SPD)
             for (let i = 0; i < currentEqs; i++) {
-                let allZerosInCoef = true;
+                let firstNonZero = -1;
                 for (let j = 0; j < currentVars; j++) {
                     if (Math.abs(m[i][j]) > EPSILON) {
-                        allZerosInCoef = false;
+                        firstNonZero = j;
                         break;
                     }
                 }
 
-                if (allZerosInCoef && Math.abs(m[i][currentVars]) > EPSILON) {
-                    isSI = true;
-                    break;
-                } else if (!allZerosInCoef) {
-                    nonZeroRows++;
+                if (firstNonZero === -1) {
+                    if (Math.abs(m[i][currentVars]) > EPSILON) isSI = true;
+                } else {
+                    pivotRows[firstNonZero] = i;
+                    pivotCount++;
                 }
             }
 
@@ -412,26 +413,58 @@
                     subtext: "O sistema gerou uma contradição matemática (SI).",
                     solution: ["S = { Ø }"]
                 };
-                // Se o número de linhas não nulas for menor que o número de variáveis, o sistema é possível e indeterminado (SPI)
-            } else if (nonZeroRows < currentVars) {
+            }
+
+            // Se temos menos pivôs do que variáveis, o sistema é possível e indeterminado (SPI), o que significa que existem infinitas soluções
+            // Para ilustrar isso, podemos fornecer um exemplo de solução adotando as variáveis livres como 1 e calculando as variáveis dependentes com base nisso
+            if (pivotCount < currentVars) {
+                let exampleSol = new Array(currentVars).fill(0);
+                let freeVars = [];
+
+                // Definimos quais variáveis são livres (sem pivô)
+                for (let j = 0; j < currentVars; j++) {
+                    if (pivotRows[j] === -1) {
+                        freeVars.push(j);
+                        exampleSol[j] = 1; // Atribuímos 1 para as variáveis livres
+                    }
+                }
+
+                // Calculamos as variáveis dependentes (com pivô)
+                for (let j = 0; j < currentVars; j++) {
+                    if (pivotRows[j] !== -1) {
+                        let rowIdx = pivotRows[j];
+                        let val = m[rowIdx][currentVars];
+                        // Subtraímos o efeito das variáveis livres que definimos como 1
+                        for (let freeIdx of freeVars) {
+                            val -= m[rowIdx][freeIdx] * exampleSol[freeIdx];
+                        }
+                        exampleSol[j] = val;
+                    }
+                }
+
+                const solStrings = exampleSol.map((val, idx) =>
+                    `<span class="text-amber-700 font-bold mr-2">${getVarName(idx)}</span> = ${formatNumber(val)}`
+                );
+
                 return {
                     type: "Sistema Possível e Indeterminado",
-                    subtext: "O sistema possui infinitas soluções (SPI).",
-                    solution: ["Infinitas soluções", "Variáveis livres identificadas"]
-                };
-                // Caso contrário, o sistema é possível e determinado (SPD) e cada variável tem um valor específico
-            } else {
-                const sol = [];
-                for (let i = 0; i < currentVars; i++) {
-                    let val = m[i][currentVars];
-                    sol.push(`<span class="text-indigo-600 font-bold mr-2">${getVarName(i)}</span> = ${formatNumber(val)}`);
-                }
-                return {
-                    type: "Sistema Possível e Determinado",
-                    subtext: "O sistema possui uma solução única (SPD).",
-                    solution: sol
+                    subtext: "Infinitas soluções. Abaixo, um exemplo (adotando variáveis livres = 1):",
+                    solution: solStrings
                 };
             }
+
+            const sol = [];
+            for (let i = 0; i < currentVars; i++) {
+                // Encontra qual linha tem o pivô para a variável i
+                let rowIdx = pivotRows[i];
+                let val = (rowIdx !== -1) ? m[rowIdx][currentVars] : 0;
+                sol.push(`<span class="text-emerald-700 font-bold mr-2">${getVarName(i)}</span> = ${formatNumber(val)}`);
+            }
+            return {
+                type: "Sistema Possível e Determinado",
+                subtext: "O sistema possui uma solução única (SPD).",
+                solution: sol
+            };
         }
 
         function renderResults(data) {
